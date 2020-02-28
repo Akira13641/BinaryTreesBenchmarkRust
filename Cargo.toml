@@ -2,7 +2,7 @@
 authors = ["Akira1364"]
 description = "A port of a combination of the C++ and D ports of my Free Pascal Binary Trees benchmark implementation, once again written just out of curiosity."
 edition = "2018"
-include = ["Cargo.toml", "LICENCE-MIT", "src/**/*"]
+include = ["Cargo.toml", "LICENCE", "src/**/*"]
 license = "MIT"
 name = "binarytrees_benchmark"
 readme = "README.md"
