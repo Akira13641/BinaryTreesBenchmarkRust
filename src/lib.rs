@@ -9,7 +9,9 @@
 #![feature(const_generics)]
 #![feature(core_intrinsics)]
 
-use crate::TNonFreePooledMemManager;
+pub use crate::pooledmm::TNonFreePooledMemManager;
+mod pooledmm;
+
 use rayon::prelude::*;
 
 #[derive(Copy, Clone)]
