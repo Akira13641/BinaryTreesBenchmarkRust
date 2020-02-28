@@ -2,12 +2,6 @@
 // Year: 2020
 // License: MIT
 
-#![allow(incomplete_features)]
-#![feature(alloc_layout_extra)]
-#![feature(const_fn)]
-#![feature(const_generics)]
-#![feature(core_intrinsics)]
-
 use std::{alloc::*, intrinsics::*, ptr::*};
 
 struct TNonFreePooledMemManager<T, const N: usize> {
