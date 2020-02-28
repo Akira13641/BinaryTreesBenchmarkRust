@@ -1,0 +1,15 @@
+language: rust
+
+rust: nightly
+
+jobs:
+  include:
+  - os: linux
+    dist: bionic
+  - os: osx
+    osx_image: xcode11.3
+
+script:
+  cargo build --release
+  cd ./target/release
+  time ./binarytrees_benchmark 21
