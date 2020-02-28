@@ -4,7 +4,7 @@
 
 use std::{alloc::*, intrinsics::*, ptr::*};
 
-struct TNonFreePooledMemManager<T, const N: usize> {
+pub struct TNonFreePooledMemManager<T, const N: usize> {
   cur_size: usize,
   cur_item: *mut T,
   end_item: *mut T,
@@ -13,7 +13,7 @@ struct TNonFreePooledMemManager<T, const N: usize> {
 
 impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
   #[inline(always)]
-  const fn new() -> Self {
+  pub const fn new() -> Self {
     Self {
       cur_size: size_of::<T>() * N,
       cur_item: null_mut(),
@@ -23,7 +23,7 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
   }
 
   #[inline]
-  fn clear(&mut self) {
+  pub fn clear(&mut self) {
     let length = self.items.len();
     if length > 0 {
       for i in 0..length {
@@ -40,7 +40,7 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
   }
 
   #[inline]
-  fn new_item(&mut self) -> &mut T {
+  pub fn new_item(&mut self) -> &mut T {
     if self.cur_item == self.end_item {
       self.cur_size += self.cur_size;
       let num_items = self.cur_size / size_of::<T>();
@@ -58,10 +58,8 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
   }
 
   #[inline]
-  fn enumerate_items<F>(&mut self, mut f: F)
-  where
-    F: FnMut(&mut T) -> (),
-  {
+  pub fn enumerate_items<F>(&mut self, mut f: F)
+  where F: FnMut(&mut T) -> () {
     let length = self.items.len();
     if length > 0 {
       let mut size = size_of::<T>() * N;
