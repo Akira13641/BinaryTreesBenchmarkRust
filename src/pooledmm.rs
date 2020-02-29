@@ -7,18 +7,18 @@ use std::{alloc::*, intrinsics::*, ptr::*};
 // Using the allocator API is the closest you can get to something like this in Rust without doing
 // anything that would just blatantly be undefined behavior. That said, having to track the size of
 // the allocations ourselves only seems to slow things down slightly compared to the other versions.
-pub struct TNonFreePooledMemManager<T, const N: usize> {
+pub struct TNonFreePooledMemManager<T, const init_size: usize> {
   cur_size: usize,
   cur_item: *mut T,
   end_item: *mut T,
   items: Vec<(*mut T, Layout)>,
 }
 
-impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
+impl<T, const init_size: usize> TNonFreePooledMemManager<T, init_size> {
   #[inline(always)]
   pub const fn new() -> Self {
     Self {
-      cur_size: size_of::<T>() * N,
+      cur_size: size_of::<T>() * init_size,
       cur_item: null_mut(),
       end_item: null_mut(),
       items: Vec::new(),
@@ -36,7 +36,7 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
         }
       }
       self.items.clear();
-      self.cur_size = size_of::<T>() * N;
+      self.cur_size = size_of::<T>() * init_size;
       self.cur_item = null_mut();
       self.end_item = null_mut();
     }
@@ -46,6 +46,9 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
   pub fn new_item(&mut self) -> &mut T {
     if self.cur_item == self.end_item {
       self.cur_size += self.cur_size;
+      // The next bit will fail with `attempt to divide by zero` if `T` is a ZST, which seems
+      // appropriate enough considering the call to `alloc_zeroed` immediately afterwards would also
+      // fail if actually reached with a ZST.
       let layout = Layout::new::<T>()
         .repeat_packed(self.cur_size / size_of::<T>())
         .unwrap();
@@ -75,7 +78,7 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
   where F: FnMut(&mut T) -> () {
     let length = self.items.len();
     if length > 0 {
-      let mut size = size_of::<T>() * N;
+      let mut size = size_of::<T>() * init_size;
       for i in 0..length {
         size += size;
         unsafe {
@@ -95,7 +98,7 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
   }
 }
 
-impl<T, const N: usize> Drop for TNonFreePooledMemManager<T, N> {
+impl<T, const init_size: usize> Drop for TNonFreePooledMemManager<T, init_size> {
   #[inline(always)]
   fn drop(&mut self) {
     self.clear();
