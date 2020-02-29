@@ -2,23 +2,24 @@
 // Year: 2020
 // License: MIT
 
-use std::{alloc::*, intrinsics::*, ptr::*};
+use std::alloc::{alloc_zeroed, dealloc, handle_alloc_error, Layout};
+use std::ptr::null_mut;
 
 // Using the allocator API is the closest you can get to something like this in Rust without doing
 // anything that would just blatantly be undefined behavior. That said, having to track the size of
 // the allocations ourselves only seems to slow things down slightly compared to the other versions.
-pub struct TNonFreePooledMemManager<T, const init_size: usize> {
+pub struct TNonFreePooledMemManager<T, const INIT_SIZE: usize> {
   cur_size: usize,
   cur_item: *mut T,
   end_item: *mut T,
   items: Vec<(*mut T, Layout)>,
 }
 
-impl<T, const init_size: usize> TNonFreePooledMemManager<T, init_size> {
+impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
   #[inline(always)]
   pub const fn new() -> Self {
     Self {
-      cur_size: size_of::<T>() * init_size,
+      cur_size: INIT_SIZE,
       cur_item: null_mut(),
       end_item: null_mut(),
       items: Vec::new(),
@@ -27,14 +28,14 @@ impl<T, const init_size: usize> TNonFreePooledMemManager<T, init_size> {
 
   #[inline]
   pub fn clear(&mut self) {
-    if self.items.len() > 0 {
-      for tup in self.items.iter() {
+    if !self.items.is_empty() {
+      for tup in &self.items {
         unsafe {
           dealloc(tup.0 as *mut u8, tup.1);
         }
       }
       self.items.clear();
-      self.cur_size = size_of::<T>() * init_size;
+      self.cur_size = INIT_SIZE;
       self.cur_item = null_mut();
       self.end_item = null_mut();
     }
@@ -47,9 +48,7 @@ impl<T, const init_size: usize> TNonFreePooledMemManager<T, init_size> {
       // The next bit will fail with `attempt to divide by zero` if `T` is a ZST, which seems
       // appropriate enough considering the call to `alloc_zeroed` immediately afterwards would also
       // fail if actually reached with a ZST.
-      let layout = Layout::new::<T>()
-        .repeat_packed(self.cur_size / size_of::<T>())
-        .unwrap();
+      let layout = Layout::new::<T>().repeat_packed(self.cur_size).unwrap();
       self.cur_item = unsafe { alloc_zeroed(layout) as *mut T };
       // Generally I feel like if `cur_item` is actually null the user probably has bigger issues to
       // deal with, but properly checking for it doesn't make things noticeably slower so there's no
@@ -60,7 +59,7 @@ impl<T, const init_size: usize> TNonFreePooledMemManager<T, init_size> {
         self.items.push((self.cur_item, layout));
       }
       self.end_item = self.cur_item;
-      self.end_item = unsafe { (self.end_item as *mut u8).add(self.cur_size) as *mut T };
+      self.end_item = unsafe { self.end_item.add(self.cur_size) };
     }
     let result = self.cur_item;
     unsafe {
@@ -76,13 +75,13 @@ impl<T, const init_size: usize> TNonFreePooledMemManager<T, init_size> {
   where F: FnMut(&mut T) -> () {
     let length = self.items.len();
     if length > 0 {
-      let mut size = size_of::<T>() * init_size;
+      let mut size = INIT_SIZE;
       for i in 0..length {
         size += size;
         unsafe {
           let mut p = self.items.get_unchecked_mut(i).0;
           let mut last = p;
-          last = (last as *mut u8).add(size) as *mut T;
+          last = last.add(size);
           if i == length - 1 {
             last = self.end_item;
           }
@@ -96,7 +95,7 @@ impl<T, const init_size: usize> TNonFreePooledMemManager<T, init_size> {
   }
 }
 
-impl<T, const init_size: usize> Drop for TNonFreePooledMemManager<T, init_size> {
+impl<T, const INIT_SIZE: usize> Drop for TNonFreePooledMemManager<T, INIT_SIZE> {
   #[inline(always)]
   fn drop(&mut self) {
     self.clear();

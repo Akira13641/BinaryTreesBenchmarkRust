@@ -10,12 +10,11 @@
 #![feature(alloc_layout_extra)]
 #![feature(const_fn)]
 #![feature(const_generics)]
-#![feature(core_intrinsics)]
 
 pub use crate::pooledmm::TNonFreePooledMemManager;
-mod pooledmm;
-
 use rayon::prelude::*;
+
+mod pooledmm;
 
 #[derive(Copy, Clone)]
 struct TDataRec {
@@ -35,21 +34,22 @@ impl TNode {
   #[inline(always)]
   fn check_node(node: *mut TNode) -> i32 {
     unsafe {
-      // `node` is never itself null when passed into this function.
+      // `node` is never itself null when passed into this function. Also, anecdotally, IMO Rust's
+      // syntax for dereferencing raw pointers could not possibly be worse than what it is.
       if !((*node).right.is_null() && (*node).left.is_null()) {
         return 1 + TNode::check_node((*node).right) + TNode::check_node((*node).left);
       }
     }
-    return 1;
+    1
   }
 
   // This can't be `&mut` instead of `*mut` due to the lifetime / borrowing rules.
   #[inline(always)]
-  fn make_tree(depth: i32, mp: *mut TNodePool) -> *mut TNode {
-    let result = unsafe { (*mp).new_item() };
+  fn make_tree(depth: i32, node_pool: *mut TNodePool) -> *mut TNode {
+    let result = unsafe { (*node_pool).new_item() };
     if depth > 0 {
-      result.right = TNode::make_tree(depth - 1, mp);
-      result.left = TNode::make_tree(depth - 1, mp);
+      result.right = TNode::make_tree(depth - 1, node_pool);
+      result.left = TNode::make_tree(depth - 1, node_pool);
     }
     result
   }
@@ -86,14 +86,15 @@ fn main() {
   // While the tree stays live, create multiple trees. Local data is stored in
   // the `data` variable.
   let high_index = (max_depth - min_depth) / 2 + 1;
+  // How exactly making use of fixed-size static arrays is "unsafe" is beyond me, but...
   let slice = unsafe { &mut data[0..high_index as usize] };
   slice.par_iter_mut().enumerate().for_each(|(i, item)| {
     item.depth = min_depth + i as u8 * 2;
-    item.iterations = 1 << max_depth - i as u8 * 2;
-    let mut ipool = TNodePool::new();
+    item.iterations = 1 << (max_depth - i as u8 * 2);
+    let mut inner_pool = TNodePool::new();
     for _ in 1..item.iterations + 1 {
-      item.check += TNode::check_node(TNode::make_tree(item.depth as i32, &mut ipool));
-      ipool.clear();
+      item.check += TNode::check_node(TNode::make_tree(item.depth as i32, &mut inner_pool));
+      inner_pool.clear();
     }
   });
 
@@ -112,5 +113,5 @@ fn main() {
     TNode::check_node(tree)
   );
 
-  // `pool` is cleared on drop right around here.
+  // `pool` is cleared on drop right around here, thus destroying `tree`.
 }
