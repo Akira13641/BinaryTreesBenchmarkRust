@@ -35,6 +35,7 @@ impl TNode {
   #[inline(always)]
   fn check_node(node: *mut TNode) -> i32 {
     unsafe {
+      // `node` is never itself null when passed into this function.
       if !((*node).right.is_null() && (*node).left.is_null()) {
         return 1 + TNode::check_node((*node).right) + TNode::check_node((*node).left);
       }
