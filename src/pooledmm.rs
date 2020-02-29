@@ -46,6 +46,9 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
   pub fn new_item(&mut self) -> &mut T {
     if self.cur_item == self.end_item {
       self.cur_size += self.cur_size;
+      // The next bit will fail with `attempt to divide by zero` if `T` is a ZST, which seems
+      // appropriate enough considering the call to `alloc_zeroed` immediately afterwards would also
+      // fail if actually reached with a ZST.
       let layout = Layout::new::<T>()
         .repeat_packed(self.cur_size / size_of::<T>())
         .unwrap();
