@@ -4,11 +4,14 @@
 
 use std::{alloc::*, intrinsics::*, ptr::*};
 
+// Using the allocator API is the closest you can get to something like this in Rust without doing
+// anything that would just blatantly be undefined behavior. That said, having to track the size of
+// the allocations ourselves only seems to slow things down slightly compared to the other versions.
 pub struct TNonFreePooledMemManager<T, const N: usize> {
   cur_size: usize,
   cur_item: *mut T,
   end_item: *mut T,
-  items: Vec<(*mut T, usize)>,
+  items: Vec<(*mut T, Layout)>,
 }
 
 impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
@@ -29,10 +32,10 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
       for i in 0..length {
         unsafe {
           let tup = self.items.get_unchecked(i);
-          dealloc(tup.0 as *mut u8, Layout::array::<T>(tup.1).unwrap());
+          dealloc(tup.0 as *mut u8, tup.1);
         }
       }
-      self.items.truncate(0);
+      self.items.clear();
       self.cur_size = size_of::<T>() * N;
       self.cur_item = null_mut();
       self.end_item = null_mut();
@@ -43,10 +46,18 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
   pub fn new_item(&mut self) -> &mut T {
     if self.cur_item == self.end_item {
       self.cur_size += self.cur_size;
-      let num_items = self.cur_size / size_of::<T>();
-      self.cur_item =
-        unsafe { alloc_zeroed(Layout::array::<T>(num_items).unwrap()) as *mut T };
-      self.items.push((self.cur_item, num_items));
+      let layout = Layout::new::<T>()
+        .repeat_packed(self.cur_size / size_of::<T>())
+        .unwrap();
+      self.cur_item = unsafe { alloc_zeroed(layout) as *mut T };
+      // Generally I feel like if `cur_item` is actually null the user probably has bigger issues to
+      // deal with, but properly checking for it doesn't make things noticeably slower so there's no
+      // real reason not to.
+      if self.cur_item.is_null() {
+        handle_alloc_error(layout)
+      } else {
+        self.items.push((self.cur_item, layout));
+      }
       self.end_item = self.cur_item;
       self.end_item = unsafe { (self.end_item as *mut u8).add(self.cur_size) as *mut T };
     }
@@ -57,8 +68,11 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
     }
   }
 
+  // Note that this enumerates *all allocated* items, i.e. a number
+  // which is always greater than both `items.size()` and the number
+  // of times that `new_item()` has been called.
   #[inline]
-  pub fn enumerate_items<F>(&mut self, mut f: F)
+  pub fn enumerate_items<F>(&mut self, mut fun: F)
   where F: FnMut(&mut T) -> () {
     let length = self.items.len();
     if length > 0 {
@@ -73,7 +87,7 @@ impl<T, const N: usize> TNonFreePooledMemManager<T, N> {
             last = self.end_item;
           }
           while p != last {
-            f(&mut *p);
+            fun(&mut *p);
             p = p.offset(1);
           }
         }

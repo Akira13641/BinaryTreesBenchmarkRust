@@ -2,6 +2,11 @@
 // Year: 2020
 // License: MIT
 
+// Note: This was written to simply be as similar as possible
+// to my other-language versions of it in every way, with no
+// specific attempt made to not use unsafe "just because this
+// is Rust".
+
 #![allow(incomplete_features)]
 #![allow(non_upper_case_globals)]
 #![feature(alloc_layout_extra)]
@@ -39,6 +44,7 @@ impl TNode {
     return 1;
   }
 
+  // This can't be `&mut` instead of `*mut` due to the lifetime / borrowing rules.
   #[inline(always)]
   fn make_tree(depth: i32, mp: *mut TNodePool) -> *mut TNode {
     let result = unsafe { (*mp).new_item() };
@@ -62,24 +68,25 @@ fn main() {
   let n = std::env::args()
     .nth(1)
     .and_then(|n| n.parse().ok())
-    .unwrap_or(21);
-    
+    .unwrap_or(10);
+
   let max_depth = if min_depth + 2 > n { min_depth + 2 } else { n };
 
+  // Create and destroy a tree of depth `max_depth + 1`.
   let mut pool = TNodePool::new();
-  
   println!(
     "stretch tree of depth {}\t check: {}",
     max_depth + 1,
     TNode::check_node(TNode::make_tree(max_depth as i32 + 1, &mut pool))
   );
-  
   pool.clear();
 
+  // Create a "long lived" tree of depth `max_depth`.
   let tree = TNode::make_tree(max_depth as i32, &mut pool);
 
+  // While the tree stays live, create multiple trees. Local data is stored in
+  // the `data` variable.
   let high_index = (max_depth - min_depth) / 2 + 1;
-
   let slice = unsafe { &mut data[0..high_index as usize] };
   slice.par_iter_mut().enumerate().for_each(|(i, item)| {
     item.depth = min_depth + i as u8 * 2;
@@ -90,7 +97,8 @@ fn main() {
       ipool.clear();
     }
   });
-  
+
+  // Display the results.
   for item in slice {
     println!(
       "{}\t trees of depth {}\t check: {}",
@@ -98,6 +106,7 @@ fn main() {
     );
   }
 
+  // Check and destroy the long lived tree.
   println!(
     "long lived tree of depth {}\t check: {}",
     max_depth,
