@@ -27,11 +27,9 @@ impl<T, const init_size: usize> TNonFreePooledMemManager<T, init_size> {
 
   #[inline]
   pub fn clear(&mut self) {
-    let length = self.items.len();
-    if length > 0 {
-      for i in 0..length {
+    if self.items.len() > 0 {
+      for tup in self.items.iter() {
         unsafe {
-          let tup = self.items.get_unchecked(i);
           dealloc(tup.0 as *mut u8, tup.1);
         }
       }
