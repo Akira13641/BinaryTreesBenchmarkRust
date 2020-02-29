@@ -2,10 +2,8 @@
 // Year: 2020
 // License: MIT
 
-// Note: This was written to simply be as similar as possible
-// to my other-language versions of it in every way, with no
-// specific attempt made to not use unsafe "just because this
-// is Rust".
+// Note: This was written to simply be as similar as possible to my other-language versions of it
+// in every way, with no specific attempt made to not use unsafe "just because this is Rust".
 
 #![allow(incomplete_features)]
 #![allow(non_upper_case_globals)]
@@ -112,4 +110,6 @@ fn main() {
     max_depth,
     TNode::check_node(tree)
   );
+
+  // `pool` is cleared on drop right around here.
 }
