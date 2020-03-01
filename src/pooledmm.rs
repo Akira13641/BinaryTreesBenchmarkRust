@@ -76,7 +76,7 @@ impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
       for i in 0..length {
         size += size;
         unsafe {
-          let mut p = self.items.get_unchecked_mut(i).0;
+          let mut p = self.items.get_unchecked(i).0;
           let mut last = p;
           last = last.add(size);
           if i == length - 1 {
