@@ -68,7 +68,7 @@ impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
   // Note that this enumerates *all allocated* items, i.e. a number which is always greater than
   // both `items.len()` and the number of times that `new_item()` has been called.
   #[inline]
-  pub fn enumerate_items<F>(&mut self, mut fun: F)
+  pub fn enumerate_items<F>(&self, mut fun: F)
   where F: FnMut(&mut T) -> () {
     let length = self.items.len();
     if length > 0 {
