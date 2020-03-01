@@ -28,7 +28,7 @@ struct TNode {
   right: *mut TNode,
 }
 
-type TNodePool = TNonFreePooledMemManager<TNode, 32>;
+type TNodePool = TNonFreePooledMemManager<TNode, 64>;
 
 impl TNode {
   #[inline(always)]
@@ -112,6 +112,5 @@ fn main() {
     max_depth,
     TNode::check_node(tree)
   );
-
-  // `pool` is cleared on drop right around here, thus destroying `tree`.
+  pool.clear();
 }
