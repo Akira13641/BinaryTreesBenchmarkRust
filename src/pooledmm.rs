@@ -42,11 +42,11 @@ impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
   }
 
   #[inline]
-  pub fn new_item(&mut self) -> &mut T {
+  pub unsafe fn new_item(&mut self) -> *mut T {
     if self.cur_item == self.end_item {
       self.cur_size += self.cur_size;
       let layout = Layout::new::<T>().repeat_packed(self.cur_size).unwrap();
-      self.cur_item = unsafe { alloc_zeroed(layout) as *mut T };
+      self.cur_item = alloc_zeroed(layout) as *mut T;
       // Generally I feel like if `cur_item` is actually null the user probably has bigger issues to
       // deal with, but properly checking for it doesn't make things noticeably slower so there's no
       // real reason not to.
@@ -56,39 +56,11 @@ impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
         self.items.push((self.cur_item, layout));
       }
       self.end_item = self.cur_item;
-      self.end_item = unsafe { self.end_item.add(self.cur_size) };
+      self.end_item = self.end_item.add(self.cur_size);
     }
     let result = self.cur_item;
-    unsafe {
-      self.cur_item = self.cur_item.offset(1);
-      &mut *result
-    }
-  }
-
-  // Note that this enumerates *all allocated* items, i.e. a number which is always greater than
-  // both `items.len()` and the number of times that `new_item()` has been called.
-  #[inline]
-  pub fn enumerate_items<F>(&self, mut fun: F)
-  where F: FnMut(&mut T) -> () {
-    let length = self.items.len();
-    if length > 0 {
-      let mut size = INIT_SIZE;
-      for i in 0..length {
-        size += size;
-        unsafe {
-          let mut p = self.items.get_unchecked(i).0;
-          let mut last = p;
-          last = last.add(size);
-          if i == length - 1 {
-            last = self.end_item;
-          }
-          while p != last {
-            fun(&mut *p);
-            p = p.offset(1);
-          }
-        }
-      }
-    }
+    self.cur_item = self.cur_item.offset(1);
+    result
   }
 }
 
