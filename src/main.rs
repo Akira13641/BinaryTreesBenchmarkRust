@@ -46,12 +46,14 @@ impl TNode {
   // This can't be `&mut` instead of `*mut` due to the lifetime / borrowing rules.
   #[inline(always)]
   fn make_tree(depth: i32, node_pool: *mut TNodePool) -> *mut TNode {
-    let result = unsafe { (*node_pool).new_item() };
-    if depth > 0 {
-      result.right = TNode::make_tree(depth - 1, node_pool);
-      result.left = TNode::make_tree(depth - 1, node_pool);
+    unsafe {
+      let result = (*node_pool).new_item();
+      if depth > 0 {
+        (*result).right = TNode::make_tree(depth - 1, node_pool);
+        (*result).left = TNode::make_tree(depth - 1, node_pool);
+      }
+      result
     }
-    result
   }
 }
 
