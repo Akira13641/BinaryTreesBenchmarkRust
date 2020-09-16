@@ -23,7 +23,7 @@ impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
       cur_size: INIT_SIZE,
       cur_item: null_mut(),
       end_item: null_mut(),
-      items: Vec::new(),
+      items: Vec::with_capacity(INIT_SIZE / 4),
     }
   }
 
