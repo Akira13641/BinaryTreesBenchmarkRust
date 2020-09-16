@@ -21,4 +21,4 @@ incremental = false
 overflow-checks = false
 
 [dependencies]
-rayon = "1.3.0"
+rayon = "1.4.0"
