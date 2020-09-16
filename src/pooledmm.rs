@@ -2,7 +2,7 @@
 // Year: 2020
 // License: MIT
 
-use std::alloc::{alloc_zeroed, dealloc, handle_alloc_error, Layout};
+use std::alloc::{alloc_zeroed, dealloc, Layout};
 use std::mem::{align_of, size_of};
 use std::ptr::null_mut;
 
