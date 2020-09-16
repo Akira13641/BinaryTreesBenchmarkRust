@@ -22,7 +22,7 @@ impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
   
   #[inline(always)]
   pub const fn new() -> Self {
-    assert!(ALIGN.is_power_of_two() && SIZE <= usize::MAX - (ALIGN - 1));
+    assert!(Self::ALIGN.is_power_of_two() && Self::SIZE <= usize::MAX - (Self::ALIGN - 1));
     Self {
       cur_size: INIT_SIZE,
       cur_item: null_mut(),
