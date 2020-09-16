@@ -18,12 +18,15 @@ pub struct TNonFreePooledMemManager<T, const INIT_SIZE: usize> {
 
 impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
   #[inline(always)]
-  pub fn new() -> Self {
+  pub const fn new() -> Self {
+    const ALIGN: usize = align_of::<T>();
+    const SIZE: usize = size_of::<T>();
+    assert!(ALIGN.is_power_of_two() && SIZE <= usize::MAX - (ALIGN - 1));
     Self {
       cur_size: INIT_SIZE,
       cur_item: null_mut(),
       end_item: null_mut(),
-      items: Vec::with_capacity(INIT_SIZE / 4),
+      items: Vec::new(),
     }
   }
 
@@ -50,14 +53,7 @@ impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
         size_of::<T>() * self.cur_size, align_of::<T>()
       );
       self.cur_item = alloc_zeroed(layout) as *mut T;
-      // Generally I feel like if `cur_item` is actually null the user probably has bigger issues to
-      // deal with, but properly checking for it doesn't make things noticeably slower so there's no
-      // real reason not to.
-      if self.cur_item.is_null() {
-        handle_alloc_error(layout)
-      } else {
-        self.items.push((self.cur_item, layout));
-      }
+      self.items.push((self.cur_item, layout));
       self.end_item = self.cur_item;
       self.end_item = self.end_item.add(self.cur_size);
     }
