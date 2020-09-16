@@ -3,6 +3,7 @@
 // License: MIT
 
 use std::alloc::{alloc_zeroed, dealloc, handle_alloc_error, Layout};
+use std::mem::{align_of, size_of};
 use std::ptr::null_mut;
 
 // Using the allocator API is the closest you can get to something like this in Rust without doing
@@ -45,7 +46,9 @@ impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
   pub unsafe fn new_item(&mut self) -> *mut T {
     if self.cur_item == self.end_item {
       self.cur_size += self.cur_size;
-      let layout = Layout::new::<T>().repeat_packed(self.cur_size).unwrap();
+      let layout = Layout::<T>::from_size_align(
+        size_of::<T>() * self.cur_size, align_of::<T>()
+      ).unwrap();
       self.cur_item = alloc_zeroed(layout) as *mut T;
       // Generally I feel like if `cur_item` is actually null the user probably has bigger issues to
       // deal with, but properly checking for it doesn't make things noticeably slower so there's no
