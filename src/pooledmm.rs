@@ -18,7 +18,7 @@ pub struct TNonFreePooledMemManager<T, const INIT_SIZE: usize> {
 
 impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
   #[inline(always)]
-  pub const fn new() -> Self {
+  pub fn new() -> Self {
     Self {
       cur_size: INIT_SIZE,
       cur_item: null_mut(),
