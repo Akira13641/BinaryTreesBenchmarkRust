@@ -17,10 +17,11 @@ pub struct TNonFreePooledMemManager<T, const INIT_SIZE: usize> {
 }
 
 impl<T, const INIT_SIZE: usize> TNonFreePooledMemManager<T, INIT_SIZE> {
+  const ALIGN: usize = align_of::<T>();
+  const SIZE: usize = size_of::<T>();
+  
   #[inline(always)]
   pub const fn new() -> Self {
-    const ALIGN: usize = align_of::<T>();
-    const SIZE: usize = size_of::<T>();
     assert!(ALIGN.is_power_of_two() && SIZE <= usize::MAX - (ALIGN - 1));
     Self {
       cur_size: INIT_SIZE,
