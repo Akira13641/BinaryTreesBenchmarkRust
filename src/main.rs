@@ -46,7 +46,7 @@ impl TNode {
       res_ref.right = TNode::make_tree(depth - 1, node_pool);
       res_ref.left = TNode::make_tree(depth - 1, node_pool);
     }
-    res_ref as *mut T
+    res_ref as *mut TNode
   }
 }
 
