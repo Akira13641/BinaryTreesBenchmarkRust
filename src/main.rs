@@ -30,12 +30,10 @@ type TNodePool = TNonFreePooledMemManager<TNode, 64>;
 impl TNode {
   #[inline(always)]
   fn check_node(node: *mut TNode) -> i32 {
-    unsafe {
-      // `node` is never itself null when passed into this function. Also, anecdotally, IMO Rust's
-      // syntax for dereferencing raw pointers could not possibly be worse than what it is.
-      if !((*node).right.is_null() && (*node).left.is_null()) {
-        return 1 + TNode::check_node((*node).right) + TNode::check_node((*node).left);
-      }
+    // `node` is never itself null when passed into this function.
+    let node_ref = unsafe { &mut *node };
+    if !(node_ref.right.is_null() && node_ref.left.is_null()) {
+      return 1 + TNode::check_node(node_ref.right) + TNode::check_node(node_ref.left);
     }
     1
   }
@@ -43,14 +41,12 @@ impl TNode {
   // This can't be `&mut` instead of `*mut` due to the lifetime / borrowing rules.
   #[inline(always)]
   fn make_tree(depth: i32, node_pool: *mut TNodePool) -> *mut TNode {
-    unsafe {
-      let result = (*node_pool).new_item();
-      if depth > 0 {
-        (*result).right = TNode::make_tree(depth - 1, node_pool);
-        (*result).left = TNode::make_tree(depth - 1, node_pool);
-      }
-      result
+    let res_ref = unsafe { &mut *((*node_pool).new_item()) };
+    if depth > 0 {
+      res_ref.right = TNode::make_tree(depth - 1, node_pool);
+      res_ref.left = TNode::make_tree(depth - 1, node_pool);
     }
+    res_ref as *mut T
   }
 }
 
