@@ -5,11 +5,8 @@
 // Note: This was written to simply be as similar as possible to my other-language versions of it
 // in every way, with no specific attempt made to not use unsafe "just because this is Rust".
 
-#![allow(incomplete_features)]
-#![allow(non_upper_case_globals)]
-#![feature(alloc_layout_extra)]
-#![feature(const_fn)]
-#![feature(const_generics)]
+#![allow(incomplete_features, non_upper_case_globals)]
+#![feature(alloc_layout_extra, const_fn, const_generics, const_panic)]
 
 pub use crate::pooledmm::TNonFreePooledMemManager;
 use rayon::prelude::*;
